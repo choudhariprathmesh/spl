@@ -1,0 +1,512 @@
+```html
+<div class="journal-page">
+  <div class="journal-container">
+
+    <!-- Header -->
+    <header class="page-header">
+      <div>
+        <span class="eyebrow">PERSONAL FINANCE</span>
+        <h1>Trading Journal</h1>
+        <p class="page-subtitle">
+          Track your daily trades, profit and loss in one place.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="primary-btn header-add-btn"
+        (click)="showTradeForm.set(!showTradeForm())"
+      >
+        <span class="btn-symbol">+</span>
+        Add Trade
+      </button>
+    </header>
+
+    <!-- Editable Account Balance -->
+    <section class="balance-panel">
+      <div class="balance-info">
+        <span class="balance-label">ACCOUNT BALANCE</span>
+
+        <div class="balance-edit-row">
+          <span class="currency-symbol">₹</span>
+
+          <input
+            class="balance-input"
+            type="number"
+            min="0"
+            step="0.01"
+            [ngModel]="accountBalance()"
+            (ngModelChange)="onBalanceChange($event)"
+            aria-label="Edit account balance"
+          />
+        </div>
+
+        <p>Editable balance · Updated automatically with trade P&amp;L</p>
+      </div>
+
+      <div class="funds-form">
+        <label for="fundInput">Add funds (₹)</label>
+
+        <div class="funds-input-row">
+          <input
+            id="fundInput"
+            type="number"
+            min="0.01"
+            step="0.01"
+            placeholder="Enter amount"
+            [(ngModel)]="fundInput"
+            (keydown.enter)="addFunds()"
+          />
+
+          <button
+            type="button"
+            class="funds-btn"
+            (click)="addFunds()"
+          >
+            Add Funds
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Summary -->
+    <section class="stats-grid">
+      <article class="stat-card">
+        <div class="stat-heading">
+          <span>Net P&amp;L</span>
+          <span class="stat-icon">↕</span>
+        </div>
+
+        <h3
+          [class.positive]="netProfitLoss() > 0"
+          [class.negative]="netProfitLoss() < 0"
+        >
+          {{ formatAmount(netProfitLoss()) }}
+        </h3>
+
+        <p>Selected date, after brokerage</p>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-heading">
+          <span>Win / Loss Trades</span>
+          <span class="stat-icon">◎</span>
+        </div>
+
+        <h3>
+          {{ winningTrades() }}
+          <span class="muted">/</span>
+          {{ losingTrades() }}
+        </h3>
+
+        <p>{{ dailyTrades().length }} recorded trades</p>
+      </article>
+    </section>
+
+    <!-- Add Trade Form -->
+    @if (showTradeForm()) {
+      <section class="form-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Add New Trade</h2>
+            <p>Add trade details, notes and an optional screenshot.</p>
+          </div>
+
+          <button
+            type="button"
+            class="close-btn"
+            aria-label="Close trade form"
+            (click)="resetForm()"
+          >
+            ×
+          </button>
+        </div>
+
+        <form class="trade-form" (ngSubmit)="addTrade()">
+          <div class="form-grid">
+
+            <div class="form-field">
+              <label for="tradeDate">Trade Date</label>
+              <input
+                id="tradeDate"
+                type="date"
+                [ngModel]="selectedDate()"
+                (ngModelChange)="onDateChange($event)"
+                name="tradeDate"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="symbol">Stock / Symbol</label>
+              <input
+                id="symbol"
+                type="text"
+                name="symbol"
+                [(ngModel)]="form.symbol"
+                placeholder="e.g. RELIANCE"
+                maxlength="30"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="tradeType">Trade Type</label>
+              <select
+                id="tradeType"
+                name="tradeType"
+                [(ngModel)]="form.tradeType"
+                required
+              >
+                <option value="Intraday">Intraday</option>
+                <option value="Delivery">Delivery</option>
+                <option value="Options">Options</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="investment">Investment Amount (₹)</label>
+              <input
+                id="investment"
+                type="number"
+                name="investment"
+                [(ngModel)]="form.investment"
+                placeholder="0.00"
+                min="0.01"
+                step="0.01"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="profitLoss">Profit / Loss (₹)</label>
+              <input
+                id="profitLoss"
+                type="number"
+                name="profitLoss"
+                [(ngModel)]="form.profitLoss"
+                placeholder="Profit: 500 | Loss: -250"
+                step="0.01"
+                required
+              />
+              <small>
+                Enter profit as positive and loss as negative.
+              </small>
+            </div>
+
+            <div class="form-field">
+              <label for="brokerage">Brokerage &amp; Charges (₹)</label>
+              <input
+                id="brokerage"
+                type="number"
+                name="brokerage"
+                [(ngModel)]="form.brokerage"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+
+            <div class="form-field full-width">
+              <label for="notes">Notes (Optional)</label>
+              <textarea
+                id="notes"
+                name="notes"
+                [(ngModel)]="form.notes"
+                rows="3"
+                maxlength="500"
+                placeholder="Add your trade notes or strategy..."
+              ></textarea>
+            </div>
+
+            <!-- Screenshot Upload -->
+            <div class="form-field full-width">
+              <label for="tradeScreenshot">
+                Trade Screenshot (Optional)
+              </label>
+
+              <input
+                id="tradeScreenshot"
+                class="screenshot-file-input"
+                type="file"
+                accept="image/*"
+                (change)="onScreenshotSelected($event)"
+              />
+
+              @if (tradeScreenshot(); as screenshot) {
+                <div class="screenshot-preview">
+                  <button
+                    type="button"
+                    class="screenshot-thumb-btn"
+                    (click)="openScreenshot(screenshot)"
+                    aria-label="View selected screenshot"
+                  >
+                    <img
+                      [src]="screenshot"
+                      alt="Selected trade screenshot"
+                    />
+                  </button>
+
+                  <div class="screenshot-preview-info">
+                    <span>Screenshot attached</span>
+
+                    <button
+                      type="button"
+                      class="remove-screenshot-btn"
+                      (click)="removeScreenshot()"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+
+          </div>
+
+          <div class="form-footer">
+            <p>
+              Net impact on balance:
+              <strong
+                [class.positive]="
+                  toNumber(form.profitLoss) -
+                  toNumber(form.brokerage) > 0
+                "
+                [class.negative]="
+                  toNumber(form.profitLoss) -
+                  toNumber(form.brokerage) < 0
+                "
+              >
+                {{
+                  formatAmount(
+                    toNumber(form.profitLoss) -
+                    toNumber(form.brokerage)
+                  )
+                }}
+              </strong>
+            </p>
+
+            <div class="form-actions">
+              <button
+                type="button"
+                class="secondary-btn"
+                (click)="resetForm()"
+              >
+                Cancel
+              </button>
+
+              <button type="submit" class="primary-btn">
+                Save Trade
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+    }
+
+    <!-- Trade History -->
+    <section class="history-panel">
+      <div class="section-heading history-heading">
+        <div>
+          <h2>Trade History</h2>
+          <p>Click a screenshot thumbnail to view it in full size.</p>
+        </div>
+
+        <div class="history-filters">
+          <div class="filter-field">
+            <label for="selectedDate">Date</label>
+            <input
+              id="selectedDate"
+              type="date"
+              [ngModel]="selectedDate()"
+              (ngModelChange)="onDateChange($event)"
+              name="selectedDate"
+            />
+          </div>
+
+          <div class="filter-field search-field">
+            <label for="searchText">Search</label>
+            <input
+              id="searchText"
+              type="search"
+              placeholder="Search symbol or notes..."
+              [ngModel]="searchText()"
+              (ngModelChange)="searchText.set($event)"
+              name="searchText"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="trades-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Type</th>
+              <th class="text-right">Investment</th>
+              <th class="text-right">Gross P&amp;L</th>
+              <th class="text-right">Brokerage</th>
+              <th class="text-right">Net P&amp;L</th>
+              <th>Notes / Screenshot</th>
+              <th class="text-center">Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (trade of filteredTrades(); track trade.id) {
+              <tr>
+                <td>
+                  <span class="symbol-name">{{ trade.symbol }}</span>
+                </td>
+
+                <td>
+                  <span class="type-badge">{{ trade.tradeType }}</span>
+                </td>
+
+                <td class="text-right">
+                  {{ formatAmount(trade.investment) }}
+                </td>
+
+                <td
+                  class="text-right"
+                  [class.positive]="trade.profitLoss > 0"
+                  [class.negative]="trade.profitLoss < 0"
+                >
+                  {{ formatAmount(trade.profitLoss) }}
+                </td>
+
+                <td class="text-right">
+                  {{ formatAmount(trade.brokerage) }}
+                </td>
+
+                <td
+                  class="text-right net-cell"
+                  [class.positive]="
+                    trade.profitLoss - trade.brokerage > 0
+                  "
+                  [class.negative]="
+                    trade.profitLoss - trade.brokerage < 0
+                  "
+                >
+                  {{
+                    formatAmount(
+                      trade.profitLoss - trade.brokerage
+                    )
+                  }}
+                </td>
+
+                
+<td class="notes-cell">
+  <div class="notes-content">
+    <span class="trade-notes">
+      {{ trade.notes || '—' }}
+    </span>
+
+    @if (trade.screenshot) {
+      <button
+        type="button"
+        class="table-screenshot-btn"
+        (click)="openScreenshot(trade.screenshot)"
+        aria-label="View trade screenshot"
+        title="Click to view full screenshot"
+      >
+        <img
+          class="table-screenshot-thumb"
+          [src]="trade.screenshot"
+          alt="Trade screenshot"
+          loading="lazy"
+        />
+        <span>View</span>
+      </button>
+    }
+  </div>
+</td>
+
+                <td class="text-center">
+                  <button
+                    type="button"
+                    class="delete-btn"
+                    (click)="deleteTrade(trade.id)"
+                    [attr.aria-label]="'Delete ' + trade.symbol"
+                    title="Delete trade"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="empty-cell">
+                  <div class="empty-state">
+                    <span class="empty-icon">↗</span>
+                    <h3>No trades found</h3>
+                    <p>
+                      There are no trades for this date or search.
+                      Add a trade to start tracking your results.
+                    </p>
+
+                    <button
+                      type="button"
+                      class="primary-btn"
+                      (click)="showTradeForm.set(true)"
+                    >
+                      + Add Your First Trade
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="history-footer">
+        <span>
+          Showing {{ filteredTrades().length }}
+          of {{ dailyTrades().length }} trades
+        </span>
+
+        <span>
+          Brokerage:
+          <strong>{{ formatAmount(totalBrokerage()) }}</strong>
+        </span>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <span>Trading Journal</span>
+      <span>Your trades are stored in this browser.</span>
+    </footer>
+
+  </div>
+</div>
+
+<!-- Full-size Screenshot Viewer -->
+@if (selectedScreenshot(); as screenshot) {
+  <div
+    class="screenshot-modal"
+    (click)="closeScreenshot()"
+  >
+    <div
+      class="screenshot-modal-content"
+      (click)="$event.stopPropagation()"
+    >
+      <button
+        type="button"
+        class="screenshot-modal-close"
+        (click)="closeScreenshot()"
+        aria-label="Close screenshot"
+      >
+        ×
+      </button>
+
+      <img
+        class="screenshot-full-image"
+        [src]="screenshot"
+        alt="Full-size trade screenshot"
+      />
+    </div>
+  </div>
+}
+```
