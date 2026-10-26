@@ -157,7 +157,7 @@ export class TradingJournal {
         this.saveAccountBalance();
       }
     } catch {
-      console.warn('Unable to load trading journal data.');
+      console.warn('Unable to load Triplex Trader data.');
     }
   }
 
